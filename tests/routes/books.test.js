@@ -1,28 +1,63 @@
 const request = require("supertest");
 const app = require("../../app");
-
-const { books } = require("../../data/db.json");
+const { sequelize } = require("../../models");
+const createBooksAndAuthors = require("../../seed");
 
 const route = (params = "") => {
   const path = "/api/v1/books";
   return `${path}/${params}`;
 };
 
+beforeAll(async () => {
+  const port = 3333;
+  jest.setTimeout(120000);
+  await sequelize.sync({ force: true });
+  createBooksAndAuthors();
+  await app.listen(port);
+  console.log(`Test server is running on http://localhost:${port}`);
+});
+
+afterAll(async () => {
+  sequelize.close();
+});
+
 describe("Books", () => {
   describe("[GET] Search for books", () => {
+    const verifyBooks = (req, expected) => {
+      const books = req.body;
+      books.forEach((book, index) => {
+        expect(book.title).toBe(expected[index].title);
+        expect(book.author.name).toBe(expected[index].author.name);
+      });
+    };
+
     test("returns all books", () => {
+      const expectedBooks = [
+        { id: 1, title: "Animal Farm", author: { name: "George Orwell" } },
+        { id: 2, title: "1984", author: { name: "George Orwell" } },
+        {
+          id: 3,
+          title: "Homage to Catalonia",
+          author: { name: "George Orwell" }
+        },
+        {
+          id: 4,
+          title: "The Road to Wigan Pier",
+          author: { name: "George Orwell" }
+        },
+        {
+          id: 5,
+          title: "Brave New World",
+          author: { name: "Aldous Huxley" }
+        },
+        { id: 6, title: "Fahrenheit 451", author: { name: "Ray Bradbury" } }
+      ];
+
       return request(app)
         .get(route())
         .expect("content-type", /json/)
         .expect(200)
-        .expect([
-          { id: "1", title: "Animal Farm", author: "George Orwell" },
-          { id: "2", title: "1984", author: "George Orwell" },
-          { id: "3", title: "Homage to Catalonia", author: "George Orwell" },
-          { id: "4", title: "The Road to Wigan Pier", author: "George Orwell" },
-          { id: "5", title: "Brave New World", author: "Aldous Huxley" },
-          { id: "6", title: "Fahrenheit 451", author: "Ray Bradbury" }
-        ]);
+        .then(req => verifyBooks(req, expectedBooks));
     });
 
     test("returns books matching the title query", () => {
@@ -31,7 +66,11 @@ describe("Books", () => {
         .query({ title: "1984" })
         .expect("content-type", /json/)
         .expect(200)
-        .expect([{ id: "2", title: "1984", author: "George Orwell" }]);
+        .then(req => {
+          const book = req.body[0];
+          expect(book.title).toBe("1984");
+          expect(book.author.name).toBe("George Orwell");
+        });
     });
 
     test("returns books matching the author query", () => {
@@ -40,12 +79,13 @@ describe("Books", () => {
         .query({ author: "George Orwell" })
         .expect("content-type", /json/)
         .expect(200)
-        .expect([
-          { id: "1", title: "Animal Farm", author: "George Orwell" },
-          { id: "2", title: "1984", author: "George Orwell" },
-          { id: "3", title: "Homage to Catalonia", author: "George Orwell" },
-          { id: "4", title: "The Road to Wigan Pier", author: "George Orwell" }
-        ]);
+        .then(req => {
+          const books = req.body;
+          books.forEach((book) => {
+            expect(book.author.name).toBe("George Orwell");
+          });
+          expect(books.length).toBe(4)
+        });
     });
   });
 
@@ -75,12 +115,10 @@ describe("Books", () => {
         .set("Authorization", "Bearer my-awesome-token")
         .send({ title: "The Handmaid's Tale", author: "Margaret Atwood" })
         .expect(201)
-        .then(res => {
-          expect(res.body).toEqual({
-            id: expect.any(String),
-            title: "The Handmaid's Tale",
-            author: "Margaret Atwood"
-          });
+        .then(req => {
+          const book = req.body
+          expect(book.title).toBe("The Handmaid's Tale")
+          expect(book.author).toEqual({id:4 , name: "Margaret Atwood"})
         });
     });
   });
@@ -99,7 +137,8 @@ describe("Books", () => {
         .expect({
           id: 5,
           title: "The Perennial Philosophy",
-          author: "Aldous Huxley"
+          authorId: 2,
+          author: {id: 2, name: "Aldous Huxley"}
         });
     });
 
