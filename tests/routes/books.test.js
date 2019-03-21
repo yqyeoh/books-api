@@ -10,9 +10,8 @@ const route = (params = "") => {
 
 beforeAll(async () => {
   const port = 3333;
-  jest.setTimeout(120000);
   await sequelize.sync({ force: true });
-  createBooksAndAuthors();
+  await createBooksAndAuthors();
   await app.listen(port);
   console.log(`Test server is running on http://localhost:${port}`);
 });
@@ -81,10 +80,10 @@ describe("Books", () => {
         .expect(200)
         .then(req => {
           const books = req.body;
-          books.forEach((book) => {
+          books.forEach(book => {
             expect(book.author.name).toBe("George Orwell");
           });
-          expect(books.length).toBe(4)
+          expect(books.length).toBe(4);
         });
     });
   });
@@ -116,9 +115,9 @@ describe("Books", () => {
         .send({ title: "The Handmaid's Tale", author: "Margaret Atwood" })
         .expect(201)
         .then(req => {
-          const book = req.body
-          expect(book.title).toBe("The Handmaid's Tale")
-          expect(book.author).toEqual({id:4 , name: "Margaret Atwood"})
+          const book = req.body;
+          expect(book.title).toBe("The Handmaid's Tale");
+          expect(book.author).toEqual({ id: 4, name: "Margaret Atwood" });
         });
     });
   });
@@ -138,7 +137,7 @@ describe("Books", () => {
           id: 5,
           title: "The Perennial Philosophy",
           authorId: 2,
-          author: {id: 2, name: "Aldous Huxley"}
+          author: { id: 2, name: "Aldous Huxley" }
         });
     });
 
