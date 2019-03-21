@@ -5,7 +5,7 @@ const createAuthorsAndBooks = async () => {
     {
       name: "George Orwell",
       books: [
-        { title: "Animal Farm2" },
+        { title: "Animal Farm" },
         { title: "1984" },
         { title: "Homage to Catalonia" },
         { title: "The Road to Wigan Pier" }
