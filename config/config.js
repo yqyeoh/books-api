@@ -20,8 +20,7 @@ module.exports = {
   production: {
     url: process.env.DATABASE_URL,
     options: {
-      dialect: "postgres",
-      host: "https://books-api-sequelize.herokuapp.com/"
+      dialect: "postgres"
     }
   }
 };
