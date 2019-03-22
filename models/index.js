@@ -1,16 +1,17 @@
-const Sequelize = require("sequelize");
+const Sequelize = require('sequelize');
 
-const sequelize = new Sequelize("books-api", "postgres", "admin", {
-  dialect: "postgres"
+const sequelize = new Sequelize('books-api', 'postgres', 'admin', {
+  dialect: 'postgres',
+  logging: false
 });
 
 const models = {
-  Book: sequelize.import("./book"),
-  Author: sequelize.import("./author")
+  Book: sequelize.import('./book'),
+  Author: sequelize.import('./author')
 };
 
 Object.keys(models).forEach(key => {
-  if ("associate" in models[key]) {
+  if ('associate' in models[key]) {
     models[key].associate(models);
   }
 });

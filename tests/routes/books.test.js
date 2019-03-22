@@ -1,116 +1,151 @@
-const request = require("supertest");
-const app = require("../../app");
+const request = require('supertest');
+const app = require('../../app');
+const { sequelize } = require('../../models');
+const createAuthorsAndBooks = require('../../seed');
 
-const { books } = require("../../data/db.json");
+const { books: oldBooks } = require('../../data/db.json');
 
-const route = (params = "") => {
-  const path = "/api/v1/books";
+const route = (params = '') => {
+  const path = '/api/v1/books';
   return `${path}/${params}`;
 };
 
-describe("Books", () => {
-  describe("[GET] Search for books", () => {
-    test("returns all books", () => {
+beforeAll(async () => {
+  await sequelize.sync({ force: true });
+  await createAuthorsAndBooks();
+});
+
+afterAll(async () => {
+  await sequelize.close();
+});
+
+describe('Books', () => {
+  describe('[GET] Search for books', () => {
+    const verifyBooks = (req, expected) => {
+      const books = req.body;
+      books.forEach((book, index) => {
+        expect(book.title).toBe(expected[index].title);
+        expect(book.author.name).toBe(expected[index].author.name);
+      });
+    };
+    test('returns all books', () => {
+      const expectedBooks = [
+        { id: 1, title: 'Animal Farm', author: { name: 'George Orwell' } },
+        { id: 2, title: '1984', author: { name: 'George Orwell' } },
+        {
+          id: 3,
+          title: 'Homage to Catalonia',
+          author: { name: 'George Orwell' }
+        },
+        {
+          id: 4,
+          title: 'The Road to Wigan Pier',
+          author: { name: 'George Orwell' }
+        },
+        {
+          id: 5,
+          title: 'Brave New World',
+          author: { name: 'Aldous Huxley' }
+        },
+        { id: 6, title: 'Fahrenheit 451', author: { name: 'Ray Bradbury' } }
+      ];
+
       return request(app)
         .get(route())
-        .expect("content-type", /json/)
+        .expect('content-type', /json/)
         .expect(200)
-        .expect([
-          { id: "1", title: "Animal Farm", author: "George Orwell" },
-          { id: "2", title: "1984", author: "George Orwell" },
-          { id: "3", title: "Homage to Catalonia", author: "George Orwell" },
-          { id: "4", title: "The Road to Wigan Pier", author: "George Orwell" },
-          { id: "5", title: "Brave New World", author: "Aldous Huxley" },
-          { id: "6", title: "Fahrenheit 451", author: "Ray Bradbury" }
-        ]);
+        .then(res => verifyBooks(res, expectedBooks));
     });
 
-    test("returns books matching the title query", () => {
+    test('returns books matching the title query', () => {
+      const expectedBooks = [
+        { id: 2, title: '1984', author: { name: 'George Orwell' } }
+      ];
       return request(app)
         .get(route())
-        .query({ title: "1984" })
-        .expect("content-type", /json/)
+        .query({ title: '1984' })
+        .expect('content-type', /json/)
         .expect(200)
-        .expect([{ id: "2", title: "1984", author: "George Orwell" }]);
+        .then(res => verifyBooks(res, expectedBooks));
     });
 
-    test("returns books matching the author query", () => {
+    test('returns books matching the author query', () => {
       return request(app)
         .get(route())
-        .query({ author: "George Orwell" })
-        .expect("content-type", /json/)
+        .query({ author: 'George Orwell' })
+        .expect('content-type', /json/)
         .expect(200)
         .expect([
-          { id: "1", title: "Animal Farm", author: "George Orwell" },
-          { id: "2", title: "1984", author: "George Orwell" },
-          { id: "3", title: "Homage to Catalonia", author: "George Orwell" },
-          { id: "4", title: "The Road to Wigan Pier", author: "George Orwell" }
+          { id: '1', title: 'Animal Farm', author: 'George Orwell' },
+          { id: '2', title: '1984', author: 'George Orwell' },
+          { id: '3', title: 'Homage to Catalonia', author: 'George Orwell' },
+          { id: '4', title: 'The Road to Wigan Pier', author: 'George Orwell' }
         ]);
     });
   });
 
-  describe("[POST] Creates a new book", () => {
-    test("deny access when no token is given", () => {
+  describe('[POST] Creates a new book', () => {
+    test('deny access when no token is given', () => {
       return request(app)
         .post(route())
-        .send({ title: "The Handmaid's Tale", author: "Margaret Atwood" })
+        .send({ title: "The Handmaid's Tale", author: 'Margaret Atwood' })
         .catch(err => {
           expect(err.status).toBe(403);
         });
     });
 
-    test("deny access when incorrect token is given", () => {
+    test('deny access when incorrect token is given', () => {
       return request(app)
         .post(route())
-        .set("Authorization", "Bearer some-invalid-token")
-        .send({ title: "The Handmaid's Tale", author: "Margaret Atwood" })
+        .set('Authorization', 'Bearer some-invalid-token')
+        .send({ title: "The Handmaid's Tale", author: 'Margaret Atwood' })
         .catch(res => {
           expect(res.status).toBe(403);
         });
     });
 
-    test("grant access when correct token is given", () => {
+    test('grant access when correct token is given', () => {
       return request(app)
         .post(route())
-        .set("Authorization", "Bearer my-awesome-token")
-        .send({ title: "The Handmaid's Tale", author: "Margaret Atwood" })
+        .set('Authorization', 'Bearer my-awesome-token')
+        .send({ title: "The Handmaid's Tale", author: 'Margaret Atwood' })
         .expect(201)
         .then(res => {
           expect(res.body).toEqual({
             id: expect.any(String),
             title: "The Handmaid's Tale",
-            author: "Margaret Atwood"
+            author: 'Margaret Atwood'
           });
         });
     });
   });
 
-  describe("[PUT] Edits an existing book", () => {
-    test("successfully edits a book", () => {
-      const id = "5";
+  describe('[PUT] Edits an existing book', () => {
+    test('successfully edits a book', () => {
+      const id = '5';
       return request(app)
         .put(route(id))
         .send({
           id: 5,
-          title: "The Perennial Philosophy",
-          author: "Aldous Huxley"
+          title: 'The Perennial Philosophy',
+          author: 'Aldous Huxley'
         })
         .expect(202)
         .expect({
           id: 5,
-          title: "The Perennial Philosophy",
-          author: "Aldous Huxley"
+          title: 'The Perennial Philosophy',
+          author: 'Aldous Huxley'
         });
     });
 
-    test("fails as there is no such book", () => {
-      const id = "100";
+    test('fails as there is no such book', () => {
+      const id = '100';
       return request(app)
         .put(route(id))
         .send({
           id: 100,
-          title: "The Perennial Philosophy",
-          author: "Aldous Huxley"
+          title: 'The Perennial Philosophy',
+          author: 'Aldous Huxley'
         })
         .catch(res => {
           expect(res.status).toBe(400);
@@ -118,23 +153,23 @@ describe("Books", () => {
     });
   });
 
-  describe("[DELETE] Removes an existing book", () => {
-    test("successfully removes a book", () => {
-      const id = "1";
+  describe('[DELETE] Removes an existing book', () => {
+    test('successfully removes a book', () => {
+      const id = '1';
       return request(app)
         .delete(route(id))
         .expect(202);
     });
 
-    test("fails as there is no such book", done => {
-      const id = "100";
+    test('fails as there is no such book', done => {
+      const id = '100';
       request(app)
         .delete(route(id))
         .expect(400, done);
     });
 
-    test("fails as there is no such book", () => {
-      const id = "100";
+    test('fails as there is no such book', () => {
+      const id = '100';
       return request(app)
         .delete(route(id))
         .ok(res => res.status === 400)
@@ -143,8 +178,8 @@ describe("Books", () => {
         });
     });
 
-    test("fails as there is no such book", async () => {
-      const id = "100";
+    test('fails as there is no such book', async () => {
+      const id = '100';
       await request(app)
         .delete(route(id))
         .ok(res => res.status === 400)
@@ -153,8 +188,8 @@ describe("Books", () => {
         });
     });
 
-    test("fails as there is no such book", () => {
-      const id = "100";
+    test('fails as there is no such book', () => {
+      const id = '100';
       return request(app)
         .delete(route(id))
         .ok(res => res.status === 400)
