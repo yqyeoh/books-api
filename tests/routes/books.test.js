@@ -128,7 +128,25 @@ describe('Books', () => {
   });
 
   describe('[PUT] Edits an existing book', () => {
-    test('successfully edits a book', () => {
+    test('successfully edits a book title', () => {
+      const id = '5';
+      return request(app)
+        .put(route(id))
+        .send({
+          id: 5,
+          title: 'The Perennial Philosophy',
+          author: 'George Orwell'
+        })
+        .expect(202)
+        .expect({
+          id: 5,
+          title: 'The Perennial Philosophy',
+          authorId: 1,
+          author: { id: 1, name: 'George Orwell' }
+        });
+    });
+
+    test('successfully edits a book author', () => {
       const id = '5';
       return request(app)
         .put(route(id))
@@ -141,7 +159,8 @@ describe('Books', () => {
         .expect({
           id: 5,
           title: 'The Perennial Philosophy',
-          author: 'Aldous Huxley'
+          authorId: 2,
+          author: { id: 2, name: 'Aldous Huxley' }
         });
     });
 
