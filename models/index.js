@@ -1,7 +1,7 @@
 const Sequelize = require('sequelize');
 
 const env = process.env.NODE_ENV || 'development';
-const config = require(`${__dirname  }/../config/config.js`)[env];
+const config = require(`${__dirname}/../config/config.js`)[env];
 
 let sequelize;
 // Connect to different database depending on env
@@ -17,8 +17,8 @@ if (env === 'production') {
 }
 
 const models = {
-  Book: sequelize.import('./book'),
-  Author: sequelize.import('./author')
+  Book: sequelize.import('./Book'),
+  Author: sequelize.import('./Author')
 };
 
 Object.keys(models).forEach(key => {
