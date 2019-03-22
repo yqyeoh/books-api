@@ -1,9 +1,20 @@
 const Sequelize = require('sequelize');
 
-const sequelize = new Sequelize('books-api', 'postgres', 'admin', {
-  dialect: 'postgres',
-  logging: false
-});
+const env = process.env.NODE_ENV || 'development';
+const config = require(`${__dirname  }/../config/config.js`)[env];
+
+let sequelize;
+// Connect to different database depending on env
+if (env === 'production') {
+  sequelize = new Sequelize(config.url, config.options);
+} else {
+  sequelize = new Sequelize(
+    config.database,
+    config.username,
+    config.password,
+    config.options
+  );
+}
 
 const models = {
   Book: sequelize.import('./book'),
