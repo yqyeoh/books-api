@@ -21,8 +21,8 @@ afterAll(async () => {
 
 describe('Books', () => {
   describe('[GET] Search for books', () => {
-    const verifyBooks = (req, expected) => {
-      const books = req.body;
+    const verifyBooks = (res, expected) => {
+      const books = res.body;
       books.forEach((book, index) => {
         expect(book.title).toBe(expected[index].title);
         expect(book.author.name).toBe(expected[index].author.name);
